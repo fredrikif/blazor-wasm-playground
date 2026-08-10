@@ -1,0 +1,167 @@
+@page "/handleliste"
+@inject blazor_wasm_playground.Services.AuthService AuthService
+@inject blazor_wasm_playground.Services.FirebaseService FirebaseService
+@inject NavigationManager Navigation
+
+<PageTitle>Handleliste</PageTitle>
+
+<h1>Handleliste</h1>
+
+<p>
+    Manage the Firestore-backed handleliste collection.
+</p>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<AuthorizeView>
+    <Authorized>
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>Signed in as</strong> @AuthService.CurrentUser?.Email
+                </div>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="SignOut">Sign out</button>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="itemName">Name</label>
+            <input id="itemName" class="form-control" @bind="newItemName" placeholder="New item name" />
+        </div>
+        <div class="form-check mb-3">
+            <input id="itemPinned" class="form-check-input" type="checkbox" @bind="newItemPinned" />
+            <label class="form-check-label" for="itemPinned">Pinned</label>
+        </div>
+        <button class="btn btn-primary" @onclick="AddItem">Add item</button>
+
+        @if (items == null)
+        {
+            <p class="mt-4"><em>Loading items...</em></p>
+        }
+        else if (!items.Any())
+        {
+            <p class="mt-4">No items found in <strong>handleliste</strong>.</p>
+        }
+        else
+        {
+            <table class="table table-striped mt-4">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Pinned</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in items)
+                    {
+                        <tr>
+                            <td>@item.Name</td>
+                            <td>@(item.Pinned ? "Yes" : "No")</td>
+                            <td>@item.CreatedAt</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            You are not authorized. Please <a href="/login">sign in</a> to access the handleliste.
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<blazor_wasm_playground.Models.HandlelisteItem>? items;
+    private string? errorMessage;
+    private string newItemName = string.Empty;
+    private bool newItemPinned;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializeFirebaseAsync();
+    }
+
+    private async Task InitializeFirebaseAsync()
+    {
+        errorMessage = null;
+
+        try
+        {
+            await AuthService.InitializeAsync();
+
+            if (AuthService.IsSignedIn)
+            {
+                await LoadItemsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+
+    private async Task SignOut()
+    {
+        errorMessage = null;
+
+        try
+        {
+            await AuthService.SignOutAsync();
+            items = null;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task LoadItemsAsync()
+    {
+        errorMessage = null;
+
+        try
+        {
+            items = await FirebaseService.GetHandlelisteAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            items = new List<blazor_wasm_playground.Models.HandlelisteItem>();
+        }
+    }
+
+    private async Task AddItem()
+    {
+        if (string.IsNullOrWhiteSpace(newItemName))
+        {
+            errorMessage = "Item name is required.";
+            return;
+        }
+
+        errorMessage = null;
+
+        try
+        {
+            var request = new blazor_wasm_playground.Services.HandlelisteItemCreateRequest
+            {
+                Name = newItemName,
+                Pinned = newItemPinned
+            };
+
+            await FirebaseService.AddHandlelisteItemAsync(request);
+            newItemName = string.Empty;
+            newItemPinned = false;
+            await LoadItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+}
