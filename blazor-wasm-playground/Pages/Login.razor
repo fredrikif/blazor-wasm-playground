@@ -60,7 +60,7 @@ else
         {
             await AuthService.SignInAsync(loginEmail, loginPassword);
             loginPassword = string.Empty;
-            Navigation.NavigateTo("/handleliste");
+            Navigation.NavigateTo("handleliste");
         }
         catch (Exception ex)
         {
@@ -75,7 +75,7 @@ else
         {
             await AuthService.RegisterAsync(loginEmail, loginPassword);
             loginPassword = string.Empty;
-            Navigation.NavigateTo("/handleliste");
+            Navigation.NavigateTo("handleliste");
         }
         catch (Exception ex)
         {
