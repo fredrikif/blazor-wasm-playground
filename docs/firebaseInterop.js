@@ -27,9 +27,17 @@ window.firebaseInterop = {
           firebase.initializeApp(window.firebaseConfig);
         }
 
-        window.firebaseInterop.db = firebase.firestore();
-        window.firebaseInterop.initialized = true;
-        resolve();
+        var auth = firebase.auth();
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+          .then(function () {
+            window.firebaseInterop.db = firebase.firestore();
+            window.firebaseInterop.initialized = true;
+            resolve();
+          })
+          .catch(function (error) {
+            window.firebaseInterop.initError = error;
+            reject(error);
+          });
       } catch (error) {
         window.firebaseInterop.initError = error;
         reject(error);
