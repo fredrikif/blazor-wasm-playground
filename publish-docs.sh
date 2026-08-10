@@ -18,6 +18,7 @@ rm -rf "$tmp_dir"
 
 # Ensure GitHub Pages uses the repo path as the base href.
 perl -pi -e 's|<base href="\./" />|<base href="/blazor-wasm-playground/" />|' "$publish_dir/index.html"
+cp "$publish_dir/index.html" "$publish_dir/404.html"
 
 touch "$publish_dir/.nojekyll"
 echo "Published Blazor site to $publish_dir"
