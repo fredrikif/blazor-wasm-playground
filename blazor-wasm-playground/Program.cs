@@ -14,4 +14,17 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, FirebaseAuthenticationStateProvider>();
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+
+// Initialize auth state before rendering so restored login is available immediately.
+var authService = host.Services.GetRequiredService<AuthService>();
+try
+{
+    await authService.InitializeAsync();
+}
+catch
+{
+    // Ignore errors here; the app will render and show not-authorized state.
+}
+
+await host.RunAsync();

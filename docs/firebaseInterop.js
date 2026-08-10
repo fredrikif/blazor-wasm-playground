@@ -30,9 +30,20 @@ window.firebaseInterop = {
         var auth = firebase.auth();
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
           .then(function () {
-            window.firebaseInterop.db = firebase.firestore();
-            window.firebaseInterop.initialized = true;
-            resolve();
+            // Wait for the first onAuthStateChanged callback so persisted
+            // auth state is restored before we signal initialization.
+            var unsub = auth.onAuthStateChanged(function (user) {
+              try {
+                window.firebaseInterop.db = firebase.firestore();
+                window.firebaseInterop.initialized = true;
+                unsub();
+                resolve();
+              } catch (err) {
+                window.firebaseInterop.initError = err;
+                unsub();
+                reject(err);
+              }
+            });
           })
           .catch(function (error) {
             window.firebaseInterop.initError = error;
