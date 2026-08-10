@@ -101,6 +101,121 @@ a, .btn-link {
         content: var(--blazor-load-percentage-text, "Loading");
     }
 
+.handleliste-card {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 1rem;
+}
+
+.handleliste-card .card-body {
+    padding: 2rem;
+}
+
+.handleliste-card h1 {
+    letter-spacing: -0.03em;
+}
+
+.handleliste-card .form-control-lg {
+    min-height: 3.2rem;
+    border-radius: 0.85rem;
+}
+
+.handleliste-card .table {
+    border-collapse: separate;
+    border-spacing: 0 0.5rem;
+}
+
+.handleliste-card .table thead th {
+    border-bottom: none;
+    font-weight: 600;
+}
+
+.handleliste-card .table tbody tr {
+    background: #ffffff;
+    border-radius: 0.75rem;
+}
+
+.handleliste-card .table tbody tr:hover {
+    background: #f5f9ff;
+}
+
+.handleliste-card .table td,
+.handleliste-card .table th {
+    vertical-align: middle;
+    border-top: none;
+}
+
+.btn-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0.55rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #f8f9fb;
+    color: #495057;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-icon:hover,
+.btn-icon:focus {
+    background: #e2effe;
+    border-color: rgba(27, 110, 194, 0.55);
+    color: #1b4faa;
+}
+
+.btn-icon-secondary {
+    background: #f3f5f8;
+    color: #1b4faa;
+}
+
+.btn-icon-active {
+    background: #1b6ec2;
+    border-color: #1551a3;
+    color: #ffffff;
+}
+
+.btn-icon-active img {
+    filter: brightness(0) saturate(100%) invert(1);
+}
+
+.btn-icon-active:hover,
+.btn-icon-active:focus {
+    background: #1551a3;
+    color: #ffffff;
+}
+
+.btn-icon-danger {
+    background: #fff4f4;
+    border-color: rgba(220, 53, 69, 0.3);
+    color: #b02a37;
+}
+
+.btn-icon-secondary:hover,
+.btn-icon-secondary:focus {
+    background: #d7e8ff;
+    color: #0f3c7a;
+}
+
+.btn-icon-danger:hover,
+.btn-icon-danger:focus {
+    background: #ffd7da;
+    color: #842029;
+}
+
+.btn-icon img {
+    width: 1rem;
+    height: 1rem;
+}
+
+.badge-pinned {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    padding: 0.4em 0.75em;
+}
+
 code {
     color: #c02d76;
 }

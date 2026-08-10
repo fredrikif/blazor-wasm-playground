@@ -83,7 +83,10 @@ window.firebaseInterop = {
 
   getHandleliste: async function () {
     await window.firebaseInterop.initialize();
-    var snapshot = await window.firebaseInterop.db.collection('handleliste').orderBy('createdAt', 'desc').get();
+    var snapshot = await window.firebaseInterop.db.collection('handleliste')
+      .orderBy('pinned', 'desc')
+      .orderBy('createdAt', 'desc')
+      .get();
     return snapshot.docs.map(function (doc) {
       var data = doc.data();
       return {
@@ -114,5 +117,27 @@ window.firebaseInterop = {
       pinned: data.pinned || false,
       createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
     };
+  },
+
+  updateHandlelisteItemPinned: async function (id, pinned) {
+    await window.firebaseInterop.initialize();
+    var docRef = window.firebaseInterop.db.collection('handleliste').doc(id);
+    await docRef.update({ pinned: pinned });
+
+    var doc = await docRef.get();
+    var data = doc.data();
+
+    return {
+      id: doc.id,
+      name: data.name || null,
+      pinned: data.pinned || false,
+      createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
+    };
+  },
+
+  deleteHandlelisteItem: async function (id) {
+    await window.firebaseInterop.initialize();
+    var docRef = window.firebaseInterop.db.collection('handleliste').doc(id);
+    await docRef.delete();
   }
 };

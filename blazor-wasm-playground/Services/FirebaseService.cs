@@ -31,6 +31,12 @@ namespace blazor_wasm_playground.Services
 
         public ValueTask<HandlelisteItem> AddHandlelisteItemAsync(HandlelisteItemCreateRequest request)
             => _jsRuntime.InvokeAsync<HandlelisteItem>("firebaseInterop.addHandlelisteItem", request);
+
+        public ValueTask<HandlelisteItem> UpdateHandlelisteItemPinnedAsync(string id, bool pinned)
+            => _jsRuntime.InvokeAsync<HandlelisteItem>("firebaseInterop.updateHandlelisteItemPinned", id, pinned);
+
+        public ValueTask DeleteHandlelisteItemAsync(string id)
+            => _jsRuntime.InvokeVoidAsync("firebaseInterop.deleteHandlelisteItem", id);
     }
 
     public class FirebaseUserInfo
