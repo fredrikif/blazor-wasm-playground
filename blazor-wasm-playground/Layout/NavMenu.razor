@@ -1,36 +1,27 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">blazor-wasm-playground</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
-
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+﻿<div class="@NavMenuCssClass nav-scrollable">
+    <nav class="site-nav">
+        <div class="site-nav-item">
+            <NavLink class="site-nav-link" href="" Match="NavLinkMatch.All" @onclick="() => OnLinkClicked.InvokeAsync(null)">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
+        <div class="site-nav-item">
+            <NavLink class="site-nav-link" href="counter" @onclick="() => OnLinkClicked.InvokeAsync(null)">
                 <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
+        <div class="site-nav-item">
+            <NavLink class="site-nav-link" href="weather" @onclick="() => OnLinkClicked.InvokeAsync(null)">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="handleliste">
+        <div class="site-nav-item">
+            <NavLink class="site-nav-link" href="handleliste" @onclick="() => OnLinkClicked.InvokeAsync(null)">
                 <span class="bi bi-card-checklist-nav-menu" aria-hidden="true"></span> Handleliste
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="login">
+        <div class="site-nav-item">
+            <NavLink class="site-nav-link" href="login" @onclick="() => OnLinkClicked.InvokeAsync(null)">
                 <span class="bi bi-box-arrow-in-right-nav-menu" aria-hidden="true"></span> Login
             </NavLink>
         </div>
@@ -38,6 +29,9 @@
 </div>
 
 @code {
+    [Parameter]
+    public EventCallback OnLinkClicked { get; set; }
+
     private bool collapseNavMenu = true;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;

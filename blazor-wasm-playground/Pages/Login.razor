@@ -8,32 +8,38 @@
 
 @if (!string.IsNullOrEmpty(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="flash flash-danger">@errorMessage</div>
 }
 
-@if (AuthService.CurrentUser != null)
+@{
+    var user = AuthService.CurrentUser;
+}
+
+@if (user != null)
 {
-    <div class="alert alert-success">
-        Signed in as <strong>@AuthService.CurrentUser.Email</strong>.
+    <div class="flash flash-success">
+        Signed in as <strong>@user.Email</strong>.
     </div>
     <button class="btn btn-secondary" @onclick="SignOut">Sign out</button>
 }
 else
 {
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="mb-3">
+    <section class="auth-card">
+        <div class="auth-card-body">
+            <div class="form-group">
                 <label class="form-label" for="email">Email</label>
                 <input id="email" class="form-control" @bind="loginEmail" placeholder="name@example.com" />
             </div>
-            <div class="mb-3">
+            <div class="form-group">
                 <label class="form-label" for="password">Password</label>
                 <input id="password" type="password" class="form-control" @bind="loginPassword" placeholder="Password" />
             </div>
-            <button class="btn btn-primary me-2" @onclick="SignIn">Sign in</button>
-            <button class="btn btn-outline-secondary" @onclick="Register">Register</button>
+            <div class="form-actions" role="group">
+                <button class="btn btn-primary" @onclick="SignIn">Sign in</button>
+                <button class="btn btn-outline-secondary" @onclick="Register">Register</button>
+            </div>
         </div>
-    </div>
+    </section>
 }
 
 @code {
