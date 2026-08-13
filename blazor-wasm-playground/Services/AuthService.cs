@@ -21,18 +21,30 @@ namespace blazor_wasm_playground.Services
         {
             await _firebaseService.InitializeAsync();
             CurrentUser = await _firebaseService.GetCurrentUserAsync();
+            if (IsSignedIn)
+            {
+                await _firebaseService.StartHandlelisteSubscriptionAsync();
+            }
             AuthStateChanged?.Invoke();
         }
 
         public async Task SignInAsync(string email, string password)
         {
             CurrentUser = await _firebaseService.SignInWithEmailPasswordAsync(email, password);
+            if (IsSignedIn)
+            {
+                await _firebaseService.StartHandlelisteSubscriptionAsync();
+            }
             AuthStateChanged?.Invoke();
         }
 
         public async Task RegisterAsync(string email, string password)
         {
             CurrentUser = await _firebaseService.RegisterWithEmailPasswordAsync(email, password);
+            if (IsSignedIn)
+            {
+                await _firebaseService.StartHandlelisteSubscriptionAsync();
+            }
             AuthStateChanged?.Invoke();
         }
 
@@ -40,6 +52,7 @@ namespace blazor_wasm_playground.Services
         {
             await _firebaseService.SignOutAsync();
             CurrentUser = null;
+            await _firebaseService.StopHandlelisteSubscriptionAsync();
             AuthStateChanged?.Invoke();
         }
     }

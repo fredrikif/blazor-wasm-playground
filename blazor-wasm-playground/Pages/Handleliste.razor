@@ -2,6 +2,7 @@
 @inject blazor_wasm_playground.Services.AuthService AuthService
 @inject blazor_wasm_playground.Services.FirebaseService FirebaseService
 @inject NavigationManager Navigation
+@implements IDisposable
 
 <PageTitle>Handleliste</PageTitle>
 
@@ -101,9 +102,12 @@
     private string? errorMessage;
     private string newItemName = string.Empty;
 
+    
     protected override async Task OnInitializedAsync()
     {
         await InitializeFirebaseAsync();
+        // Subscribe to realtime changes via FirebaseService event
+        FirebaseService.HandlelisteChanged += OnHandlelisteChanged;
     }
 
     private async Task InitializeFirebaseAsync()
@@ -141,6 +145,12 @@
             errorMessage = ex.Message;
             items = new List<blazor_wasm_playground.Models.HandlelisteItem>();
         }
+    }
+
+    private void OnHandlelisteChanged(List<blazor_wasm_playground.Models.HandlelisteItem> updatedItems)
+    {
+        items = updatedItems;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task AddItem()
@@ -209,5 +219,10 @@
         {
             errorMessage = ex.Message;
         }
+    }
+
+    public void Dispose()
+    {
+        FirebaseService.HandlelisteChanged -= OnHandlelisteChanged;
     }
 }

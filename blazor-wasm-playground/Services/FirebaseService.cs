@@ -8,6 +8,11 @@ namespace blazor_wasm_playground.Services
     {
         private readonly IJSRuntime _jsRuntime;
 
+        private DotNetObjectReference<FirebaseService>? _dotNetRef;
+        private string? _subscriptionId;
+
+        public event Action<List<HandlelisteItem>>? HandlelisteChanged;
+
         public FirebaseService(IJSRuntime jsRuntime)
         {
             _jsRuntime = jsRuntime;
@@ -37,6 +42,52 @@ namespace blazor_wasm_playground.Services
 
         public ValueTask DeleteHandlelisteItemAsync(string id)
             => _jsRuntime.InvokeVoidAsync("firebaseInterop.deleteHandlelisteItem", id);
+
+        // Manage realtime subscription from the service layer.
+        public async ValueTask StartHandlelisteSubscriptionAsync()
+        {
+            if (_subscriptionId != null)
+            {
+                return;
+            }
+
+            _dotNetRef = DotNetObjectReference.Create(this);
+            try
+            {
+                _subscriptionId = await _jsRuntime.InvokeAsync<string>("firebaseInterop.subscribeHandleliste", _dotNetRef!);
+            }
+            catch
+            {
+                // swallow subscription errors
+                _subscriptionId = null;
+            }
+        }
+
+        public async ValueTask StopHandlelisteSubscriptionAsync()
+        {
+            if (string.IsNullOrEmpty(_subscriptionId))
+                return;
+
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("firebaseInterop.unsubscribeHandleliste", _subscriptionId);
+            }
+            catch
+            {
+                // ignore
+            }
+
+            _subscriptionId = null;
+            _dotNetRef?.Dispose();
+            _dotNetRef = null;
+        }
+
+        [JSInvokable]
+        public Task HandlelisteSnapshot(List<HandlelisteItem> updatedItems)
+        {
+            HandlelisteChanged?.Invoke(updatedItems);
+            return Task.CompletedTask;
+        }
     }
 
     public class FirebaseUserInfo
