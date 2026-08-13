@@ -2,6 +2,7 @@
 @inject blazor_wasm_playground.Services.AuthService AuthService
 @inject blazor_wasm_playground.Services.FirebaseService FirebaseService
 @inject NavigationManager Navigation
+@inject Microsoft.JSInterop.IJSRuntime JS
 @implements IDisposable
 
 <PageTitle>Handleliste</PageTitle>
@@ -46,7 +47,7 @@
                     <div class="list" aria-live="polite">
                         @foreach (var item in items)
                         {
-                            <div class="list-item" role="article">
+                            <div class="list-item @GetItemClasses(item)" data-item-id="@item.Id" role="article">
                                 <div class="item-left">
                                     <span class="title">@item.Name</span>
                                 </div>
@@ -101,6 +102,10 @@
     private List<blazor_wasm_playground.Models.HandlelisteItem>? items;
     private string? errorMessage;
     private string newItemName = string.Empty;
+    private HashSet<string> removingIds = new HashSet<string>();
+    private HashSet<string> addedIds = new HashSet<string>();
+    private HashSet<string> knownIds = new HashSet<string>();
+    private bool initialLoadCompleted = false;
 
     
     protected override async Task OnInitializedAsync()
@@ -138,7 +143,9 @@
 
         try
         {
-            items = await FirebaseService.GetHandlelisteAsync();
+            var loaded = await FirebaseService.GetHandlelisteAsync();
+            // Use the same processing logic as realtime updates so newly received items flash
+            await ProcessIncomingItemsAsync(loaded);
         }
         catch (Exception ex)
         {
@@ -149,8 +156,83 @@
 
     private void OnHandlelisteChanged(List<blazor_wasm_playground.Models.HandlelisteItem> updatedItems)
     {
-        items = updatedItems;
-        InvokeAsync(StateHasChanged);
+        // Offload processing to the sync context to allow async JS interop
+        _ = InvokeAsync(() => ProcessIncomingItemsAsync(updatedItems));
+    }
+
+    private async Task ProcessIncomingItemsAsync(List<blazor_wasm_playground.Models.HandlelisteItem> updatedItems)
+    {
+        var updated = updatedItems ?? new List<blazor_wasm_playground.Models.HandlelisteItem>();
+
+        var incomingIds = new HashSet<string>(updated.Where(i => !string.IsNullOrEmpty(i.Id)).Select(i => i.Id!));
+
+        // First load: populate knownIds but do not animate everything
+        if (!initialLoadCompleted)
+        {
+            items = updated;
+            knownIds = new HashSet<string>(incomingIds);
+            initialLoadCompleted = true;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        // Determine newly added ids since last known snapshot
+        var newIds = incomingIds.Except(knownIds).ToList();
+
+        if (newIds.Any())
+        {
+            // mark as added so markup renders the added class
+            foreach (var id in newIds)
+            {
+                addedIds.Add(id);
+            }
+
+            items = updated;
+
+            // update known ids now so subsequent updates don't re-mark
+            foreach (var id in incomingIds) knownIds.Add(id);
+
+            await InvokeAsync(StateHasChanged);
+
+            // Let browser remove classes on animationend to avoid Blazor re-render flicker
+            foreach (var id in newIds)
+            {
+                try
+                {
+                    await JS.InvokeVoidAsync("firebaseInterop.removeAddedClassWhenAnimationEnds", id);
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                // keep internal tracking clean but avoid forcing a re-render
+                addedIds.Remove(id);
+            }
+        }
+        else
+        {
+            items = updated;
+            knownIds = new HashSet<string>(incomingIds);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private string GetItemClasses(blazor_wasm_playground.Models.HandlelisteItem item)
+    {
+        if (item == null)
+            return string.Empty;
+
+        var id = item.Id;
+        var classes = new List<string>();
+
+        if (!string.IsNullOrEmpty(id) && removingIds.Contains(id))
+            classes.Add("removing");
+
+        if (!string.IsNullOrEmpty(id) && addedIds.Contains(id))
+            classes.Add("added");
+
+        return string.Join(' ', classes);
     }
 
     private async Task AddItem()
@@ -171,9 +253,40 @@
                 Pinned = false
             };
 
-            await FirebaseService.AddHandlelisteItemAsync(request);
+            // create item and get the created record (with id)
+            var created = await FirebaseService.AddHandlelisteItemAsync(request);
             newItemName = string.Empty;
-            await LoadItemsAsync();
+
+            // ensure list exists and insert the new item at the top for visibility
+            items ??= new List<blazor_wasm_playground.Models.HandlelisteItem>();
+            // avoid duplicates if subscription or other code already added the item
+            if (created?.Id != null && !items.Any(i => i.Id == created.Id))
+            {
+                items.Insert(0, created);
+                knownIds.Add(created.Id);
+            }
+
+            // mark as recently added to run the entering/flash animation
+            if (created?.Id != null)
+            {
+                addedIds.Add(created.Id);
+                StateHasChanged();
+
+                // Let the browser remove the class when the CSS animation ends
+                // This avoids triggering a Blazor re-render at the exact moment
+                // the class is removed which caused a brief flash.
+                try
+                {
+                    _ = JS.InvokeVoidAsync("firebaseInterop.removeAddedClassWhenAnimationEnds", created.Id);
+                }
+                catch
+                {
+                    // ignore JS interop errors — not fatal
+                }
+
+                // keep internal tracking clean but avoid forcing a re-render
+                addedIds.Remove(created.Id);
+            }
         }
         catch (Exception ex)
         {
@@ -207,16 +320,28 @@
         {
             return;
         }
-
         errorMessage = null;
 
         try
         {
+            // mark as removing to play fade-out animation
+            removingIds.Add(item.Id);
+            StateHasChanged();
+
+            // wait for animation to complete before removing from UI / calling backend
+            await Task.Delay(200);
+
+            // perform delete
             await FirebaseService.DeleteHandlelisteItemAsync(item.Id);
-            await LoadItemsAsync();
+
+            // locally remove item to keep UI responsive; subscription will also update
+            items = items?.Where(i => i.Id != item.Id).ToList();
+            removingIds.Remove(item.Id);
+            StateHasChanged();
         }
         catch (Exception ex)
         {
+            removingIds.Remove(item.Id);
             errorMessage = ex.Message;
         }
     }

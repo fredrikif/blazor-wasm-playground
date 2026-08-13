@@ -220,4 +220,33 @@ window.firebaseInterop = {
     var docRef = window.firebaseInterop.db.collection('handleliste').doc(id);
     await docRef.delete();
   }
+,
+  removeAddedClassWhenAnimationEnds: function (itemId) {
+    if (!itemId) return;
+
+    var tryFind = function (attemptsLeft) {
+      var selector = '[data-item-id="' + itemId + '"]';
+      var el = document.querySelector(selector);
+      if (!el) {
+        if (attemptsLeft > 0) {
+          setTimeout(function () { tryFind(attemptsLeft - 1); }, 80);
+        }
+        return;
+      }
+
+      if (!el.classList.contains('added')) {
+        // nothing to do
+        return;
+      }
+
+      var onEnd = function () {
+        try { el.classList.remove('added'); } catch (e) { }
+        el.removeEventListener('animationend', onEnd);
+      };
+
+      el.addEventListener('animationend', onEnd);
+    };
+
+    tryFind(6);
+  }
 };
