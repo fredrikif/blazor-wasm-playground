@@ -125,8 +125,9 @@ window.firebaseInterop = {
     var unsub = window.firebaseInterop.db.collection('handleliste')
       .orderBy('pinned', 'desc')
       .orderBy('createdAt', 'desc')
-      .onSnapshot(function (snapshot) {
+      .onSnapshot({ includeMetadataChanges: false }, function (snapshot) {
         try {
+          // Build full items list
           var items = snapshot.docs.map(function (doc) {
             var data = doc.data();
             return {
@@ -137,7 +138,17 @@ window.firebaseInterop = {
             };
           });
 
-          // Invoke .NET callback
+          // Debug: log change types
+          try {
+            var changes = snapshot.docChanges();
+            changes.forEach(function (c) {
+              console.debug('handleliste change:', c.type, c.doc.id, c.doc.data());
+            });
+          } catch (e) {
+            // ignore
+          }
+
+          // Invoke .NET callback with full list
           if (dotNetRef && dotNetRef.invokeMethodAsync) {
             dotNetRef.invokeMethodAsync('HandlelisteSnapshot', items).catch(function (err) {
               console.error('Error invoking HandlelisteSnapshot on .NET object', err);
@@ -146,6 +157,8 @@ window.firebaseInterop = {
         } catch (e) {
           console.error('Error in handleliste onSnapshot: ', e);
         }
+      }, function (error) {
+        console.error('handleliste onSnapshot error: ', error);
       });
 
     window.firebaseInterop._handlelisteListeners[id] = unsub;

@@ -117,6 +117,67 @@ window.firebaseInterop = {
     });
   },
 
+  // Realtime subscription support for handleliste collection
+  _handlelisteListeners: {},
+  subscribeHandleliste: async function (dotNetRef) {
+    await window.firebaseInterop.initialize();
+    var id = 'sub_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+    var unsub = window.firebaseInterop.db.collection('handleliste')
+      .orderBy('pinned', 'desc')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot({ includeMetadataChanges: false }, function (snapshot) {
+        try {
+          // Build full items list
+          var items = snapshot.docs.map(function (doc) {
+            var data = doc.data();
+            return {
+              id: doc.id,
+              name: data.name || null,
+              pinned: data.pinned || false,
+              createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
+            };
+          });
+
+          // Debug: log change types
+          try {
+            var changes = snapshot.docChanges();
+            changes.forEach(function (c) {
+              console.debug('handleliste change:', c.type, c.doc.id, c.doc.data());
+            });
+          } catch (e) {
+            // ignore
+          }
+
+          // Invoke .NET callback with full list
+          if (dotNetRef && dotNetRef.invokeMethodAsync) {
+            dotNetRef.invokeMethodAsync('HandlelisteSnapshot', items).catch(function (err) {
+              console.error('Error invoking HandlelisteSnapshot on .NET object', err);
+            });
+          }
+        } catch (e) {
+          console.error('Error in handleliste onSnapshot: ', e);
+        }
+      }, function (error) {
+        console.error('handleliste onSnapshot error: ', error);
+      });
+
+    window.firebaseInterop._handlelisteListeners[id] = unsub;
+    return id;
+  },
+
+  unsubscribeHandleliste: async function (id) {
+    if (!id) return;
+    var unsub = window.firebaseInterop._handlelisteListeners[id];
+    if (typeof unsub === 'function') {
+      try {
+        unsub();
+      } catch (e) {
+        console.warn('Error calling unsubscribe for handleliste listener', e);
+      }
+    }
+    delete window.firebaseInterop._handlelisteListeners[id];
+  },
+
   addHandlelisteItem: async function (item) {
     await window.firebaseInterop.initialize();
 
