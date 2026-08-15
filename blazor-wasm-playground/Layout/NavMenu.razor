@@ -1,7 +1,8 @@
 ﻿<div class="@NavMenuCssClass nav-scrollable">
     <nav class="site-nav">
         <div class="site-nav-item">
-            <NavLink class="site-nav-link" href="" Match="NavLinkMatch.All" @onclick="() => OnLinkClicked.InvokeAsync(null)">
+            <NavLink class="site-nav-link" href="" Match="NavLinkMatch.All"
+                     @onclick="() => OnLinkClicked.InvokeAsync(null)">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
@@ -18,6 +19,11 @@
         <div class="site-nav-item">
             <NavLink class="site-nav-link" href="handleliste" @onclick="() => OnLinkClicked.InvokeAsync(null)">
                 <span class="bi bi-card-checklist-nav-menu" aria-hidden="true"></span> Handleliste
+            </NavLink>
+        </div>
+        <div class="site-nav-item">
+            <NavLink class="site-nav-link" href="todo" @onclick="() => OnLinkClicked.InvokeAsync(null)">
+                <span class="bi bi-card-checklist-nav-menu" aria-hidden="true"></span> Gjøremål
             </NavLink>
         </div>
         <div class="site-nav-item">

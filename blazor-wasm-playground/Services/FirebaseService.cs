@@ -10,8 +10,11 @@ namespace blazor_wasm_playground.Services
 
         private DotNetObjectReference<FirebaseService>? _dotNetRef;
         private string? _subscriptionId;
+        private DotNetObjectReference<FirebaseService>? _todoDotNetRef;
+        private string? _todoSubscriptionId;
 
         public event Action<List<HandlelisteItem>>? HandlelisteChanged;
+        public event Action<List<HandlelisteItem>>? TodolistChanged;
 
         public FirebaseService(IJSRuntime jsRuntime)
         {
@@ -34,16 +37,27 @@ namespace blazor_wasm_playground.Services
         public ValueTask<List<HandlelisteItem>> GetHandlelisteAsync()
             => _jsRuntime.InvokeAsync<List<HandlelisteItem>>("firebaseInterop.getHandleliste");
 
+        public ValueTask<List<HandlelisteItem>> GetTodolistAsync()
+            => _jsRuntime.InvokeAsync<List<HandlelisteItem>>("firebaseInterop.getTodolist");
+
         public ValueTask<HandlelisteItem> AddHandlelisteItemAsync(HandlelisteItemCreateRequest request)
             => _jsRuntime.InvokeAsync<HandlelisteItem>("firebaseInterop.addHandlelisteItem", request);
+
+        public ValueTask<HandlelisteItem> AddTodolistItemAsync(HandlelisteItemCreateRequest request)
+            => _jsRuntime.InvokeAsync<HandlelisteItem>("firebaseInterop.addTodolistItem", request);
 
         public ValueTask<HandlelisteItem> UpdateHandlelisteItemPinnedAsync(string id, bool pinned)
             => _jsRuntime.InvokeAsync<HandlelisteItem>("firebaseInterop.updateHandlelisteItemPinned", id, pinned);
 
+        public ValueTask<HandlelisteItem> UpdateTodolistItemPinnedAsync(string id, bool pinned)
+            => _jsRuntime.InvokeAsync<HandlelisteItem>("firebaseInterop.updateTodolistItemPinned", id, pinned);
+
         public ValueTask DeleteHandlelisteItemAsync(string id)
             => _jsRuntime.InvokeVoidAsync("firebaseInterop.deleteHandlelisteItem", id);
 
-        // Manage realtime subscription from the service layer.
+        public ValueTask DeleteTodolistItemAsync(string id)
+            => _jsRuntime.InvokeVoidAsync("firebaseInterop.deleteTodolistItem", id);
+
         public async ValueTask StartHandlelisteSubscriptionAsync()
         {
             if (_subscriptionId != null)
@@ -58,7 +72,6 @@ namespace blazor_wasm_playground.Services
             }
             catch
             {
-                // swallow subscription errors
                 _subscriptionId = null;
             }
         }
@@ -82,10 +95,54 @@ namespace blazor_wasm_playground.Services
             _dotNetRef = null;
         }
 
+        public async ValueTask StartTodolistSubscriptionAsync()
+        {
+            if (_todoSubscriptionId != null)
+            {
+                return;
+            }
+
+            _todoDotNetRef = DotNetObjectReference.Create(this);
+            try
+            {
+                _todoSubscriptionId = await _jsRuntime.InvokeAsync<string>("firebaseInterop.subscribeTodolist", _todoDotNetRef!);
+            }
+            catch
+            {
+                _todoSubscriptionId = null;
+            }
+        }
+
+        public async ValueTask StopTodolistSubscriptionAsync()
+        {
+            if (string.IsNullOrEmpty(_todoSubscriptionId))
+                return;
+
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("firebaseInterop.unsubscribeTodolist", _todoSubscriptionId);
+            }
+            catch
+            {
+                // ignore
+            }
+
+            _todoSubscriptionId = null;
+            _todoDotNetRef?.Dispose();
+            _todoDotNetRef = null;
+        }
+
         [JSInvokable]
         public Task HandlelisteSnapshot(List<HandlelisteItem> updatedItems)
         {
             HandlelisteChanged?.Invoke(updatedItems);
+            return Task.CompletedTask;
+        }
+
+        [JSInvokable]
+        public Task TodolistSnapshot(List<HandlelisteItem> updatedItems)
+        {
+            TodolistChanged?.Invoke(updatedItems);
             return Task.CompletedTask;
         }
     }

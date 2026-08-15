@@ -24,6 +24,7 @@ namespace blazor_wasm_playground.Services
             if (IsSignedIn)
             {
                 await _firebaseService.StartHandlelisteSubscriptionAsync();
+                await _firebaseService.StartTodolistSubscriptionAsync();
             }
             AuthStateChanged?.Invoke();
         }
@@ -34,6 +35,7 @@ namespace blazor_wasm_playground.Services
             if (IsSignedIn)
             {
                 await _firebaseService.StartHandlelisteSubscriptionAsync();
+                await _firebaseService.StartTodolistSubscriptionAsync();
             }
             AuthStateChanged?.Invoke();
         }
@@ -44,6 +46,7 @@ namespace blazor_wasm_playground.Services
             if (IsSignedIn)
             {
                 await _firebaseService.StartHandlelisteSubscriptionAsync();
+                await _firebaseService.StartTodolistSubscriptionAsync();
             }
             AuthStateChanged?.Invoke();
         }
@@ -53,6 +56,7 @@ namespace blazor_wasm_playground.Services
             await _firebaseService.SignOutAsync();
             CurrentUser = null;
             await _firebaseService.StopHandlelisteSubscriptionAsync();
+            await _firebaseService.StopTodolistSubscriptionAsync();
             AuthStateChanged?.Invoke();
         }
     }

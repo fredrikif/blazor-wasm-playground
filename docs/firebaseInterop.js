@@ -117,6 +117,23 @@ window.firebaseInterop = {
     });
   },
 
+  getTodolist: async function () {
+    await window.firebaseInterop.initialize();
+    var snapshot = await window.firebaseInterop.db.collection('todolist')
+      .orderBy('pinned', 'desc')
+      .orderBy('createdAt', 'desc')
+      .get();
+    return snapshot.docs.map(function (doc) {
+      var data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name || null,
+        pinned: data.pinned || false,
+        createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
+      };
+    });
+  },
+
   // Realtime subscription support for handleliste collection
   _handlelisteListeners: {},
   subscribeHandleliste: async function (dotNetRef) {
@@ -127,7 +144,6 @@ window.firebaseInterop = {
       .orderBy('createdAt', 'desc')
       .onSnapshot({ includeMetadataChanges: false }, function (snapshot) {
         try {
-          // Build full items list
           var items = snapshot.docs.map(function (doc) {
             var data = doc.data();
             return {
@@ -138,17 +154,6 @@ window.firebaseInterop = {
             };
           });
 
-          // Debug: log change types
-          try {
-            var changes = snapshot.docChanges();
-            changes.forEach(function (c) {
-              console.debug('handleliste change:', c.type, c.doc.id, c.doc.data());
-            });
-          } catch (e) {
-            // ignore
-          }
-
-          // Invoke .NET callback with full list
           if (dotNetRef && dotNetRef.invokeMethodAsync) {
             dotNetRef.invokeMethodAsync('HandlelisteSnapshot', items).catch(function (err) {
               console.error('Error invoking HandlelisteSnapshot on .NET object', err);
@@ -178,11 +183,80 @@ window.firebaseInterop = {
     delete window.firebaseInterop._handlelisteListeners[id];
   },
 
+  _todolistListeners: {},
+  subscribeTodolist: async function (dotNetRef) {
+    await window.firebaseInterop.initialize();
+    var id = 'todo_sub_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+    var unsub = window.firebaseInterop.db.collection('todolist')
+      .orderBy('pinned', 'desc')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot({ includeMetadataChanges: false }, function (snapshot) {
+        try {
+          var items = snapshot.docs.map(function (doc) {
+            var data = doc.data();
+            return {
+              id: doc.id,
+              name: data.name || null,
+              pinned: data.pinned || false,
+              createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
+            };
+          });
+
+          if (dotNetRef && dotNetRef.invokeMethodAsync) {
+            dotNetRef.invokeMethodAsync('TodolistSnapshot', items).catch(function (err) {
+              console.error('Error invoking TodolistSnapshot on .NET object', err);
+            });
+          }
+        } catch (e) {
+          console.error('Error in todolist onSnapshot: ', e);
+        }
+      }, function (error) {
+        console.error('todolist onSnapshot error: ', error);
+      });
+
+    window.firebaseInterop._todolistListeners[id] = unsub;
+    return id;
+  },
+
+  unsubscribeTodolist: async function (id) {
+    if (!id) return;
+    var unsub = window.firebaseInterop._todolistListeners[id];
+    if (typeof unsub === 'function') {
+      try {
+        unsub();
+      } catch (e) {
+        console.warn('Error calling unsubscribe for todolist listener', e);
+      }
+    }
+    delete window.firebaseInterop._todolistListeners[id];
+  },
+
   addHandlelisteItem: async function (item) {
     await window.firebaseInterop.initialize();
 
     var now = firebase.firestore.Timestamp.now();
     var docRef = await window.firebaseInterop.db.collection('handleliste').add({
+      name: item.name || '',
+      pinned: item.pinned || false,
+      createdAt: now
+    });
+
+    var doc = await docRef.get();
+    var data = doc.data();
+
+    return {
+      id: doc.id,
+      name: data.name || null,
+      pinned: data.pinned || false,
+      createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
+    };
+  },
+
+  addTodolistItem: async function (item) {
+    await window.firebaseInterop.initialize();
+
+    var now = firebase.firestore.Timestamp.now();
+    var docRef = await window.firebaseInterop.db.collection('todolist').add({
       name: item.name || '',
       pinned: item.pinned || false,
       createdAt: now
@@ -215,9 +289,31 @@ window.firebaseInterop = {
     };
   },
 
+  updateTodolistItemPinned: async function (id, pinned) {
+    await window.firebaseInterop.initialize();
+    var docRef = window.firebaseInterop.db.collection('todolist').doc(id);
+    await docRef.update({ pinned: pinned });
+
+    var doc = await docRef.get();
+    var data = doc.data();
+
+    return {
+      id: doc.id,
+      name: data.name || null,
+      pinned: data.pinned || false,
+      createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
+    };
+  },
+
   deleteHandlelisteItem: async function (id) {
     await window.firebaseInterop.initialize();
     var docRef = window.firebaseInterop.db.collection('handleliste').doc(id);
+    await docRef.delete();
+  },
+
+  deleteTodolistItem: async function (id) {
+    await window.firebaseInterop.initialize();
+    var docRef = window.firebaseInterop.db.collection('todolist').doc(id);
     await docRef.delete();
   }
 ,

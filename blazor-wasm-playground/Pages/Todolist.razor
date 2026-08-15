@@ -1,0 +1,328 @@
+@page "/todo"
+@inject blazor_wasm_playground.Services.AuthService AuthService
+@inject blazor_wasm_playground.Services.FirebaseService FirebaseService
+@inject NavigationManager Navigation
+@inject Microsoft.JSInterop.IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>Gjøremål</PageTitle>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<AuthorizeView>
+    <Authorized>
+        <div class="card handleliste-card">
+            <div class="card-header">
+                <h1 class="h3">Gjøremål (Blazor)</h1>
+            </div>
+            <div class="card-body">
+                <form class="add-item-form" @onsubmit="AddItem" @onsubmit:preventDefault>
+                    <div class="form-row">
+                        <label class="form-label visually-hidden" for="itemName">Name</label>
+                        <input id="itemName" class="form-control form-control-lg" @bind="newItemName"
+                               placeholder="Ny oppgave" />
+
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18"
+                                 fill="currentColor" aria-hidden="true" focusable="false">
+                                <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z" />
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+
+                @if (items == null)
+                {
+                    <p><em>Loading items...</em></p>
+                }
+                else if (!items.Any())
+                {
+                    <p>No items found in <strong>todolist</strong>.</p>
+                }
+                else
+                {
+                    <div class="list" aria-live="polite">
+                        @foreach (var item in items)
+                        {
+                            <div class="list-item @GetItemClasses(item)" data-item-id="@item.Id" role="article">
+                                <div class="item-left">
+                                    <span class="title">@item.Name</span>
+                                </div>
+
+                                <div class="item-actions">
+                                    <div class="item-actions" role="group">
+                                        <button class="btn btn-icon @(item.Pinned ? "btn-icon-active" : "btn-icon-secondary")"
+                                                @onclick="() => TogglePinned(item)" onpointerup="this.blur()"
+                                                title="@(item.Pinned ? "Unpin" : "Pin")">
+                                            @if (item.Pinned)
+                                            {
+                                                <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960"
+                                                     width="18" fill="currentColor" aria-hidden="true" focusable="false">
+                                                    <path
+                                                    d="M680-840v80h-40v327l-80-80v-247H400v87l-87-87-33-33v-47h400ZM480-40l-40-40v-240H240v-80l80-80v-46L56-792l56-56 736 736-58 56-264-264h-6v240l-40 40ZM354-400h92l-44-44-2-2-46 46Zm126-193Zm-78 149Z" />
+                                                </svg>
+                                            }
+                                            else
+                                            {
+                                                <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960"
+                                                     width="18" fill="currentColor" aria-hidden="true" focusable="false">
+                                                    <path
+                                                    d="m640-480 80 80v80H520v240l-40 40-40-40v-240H240v-80l80-80v-280h-40v-80h400v80h-40v280Zm-286 80h252l-46-46v-314H400v314l-46 46Zm126 0Z" />
+                                                </svg>
+                                            }
+                                        </button>
+                                        <button class="btn btn-icon btn-icon-danger" @onclick="() => DeleteItem(item)"
+                                                title="Delete" onpointerup="this.blur()">
+                                            <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960"
+                                                 width="18" fill="currentColor" aria-hidden="true" focusable="false">
+                                                <path
+                                                d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            You are not authorized. Please <a href="login">sign in</a> to access the todolist.
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<blazor_wasm_playground.Models.HandlelisteItem>? items;
+    private string? errorMessage;
+    private string newItemName = string.Empty;
+    private HashSet<string> removingIds = new HashSet<string>();
+    private HashSet<string> addedIds = new HashSet<string>();
+    private HashSet<string> knownIds = new HashSet<string>();
+    private bool initialLoadCompleted = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializeFirebaseAsync();
+        FirebaseService.TodolistChanged += OnTodolistChanged;
+    }
+
+    private async Task InitializeFirebaseAsync()
+    {
+        errorMessage = null;
+
+        try
+        {
+            await AuthService.InitializeAsync();
+
+            if (AuthService.IsSignedIn)
+            {
+                await LoadItemsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task LoadItemsAsync()
+    {
+        errorMessage = null;
+
+        try
+        {
+            var loaded = await FirebaseService.GetTodolistAsync();
+            await ProcessIncomingItemsAsync(loaded);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            items = new List<blazor_wasm_playground.Models.HandlelisteItem>();
+        }
+    }
+
+    private void OnTodolistChanged(List<blazor_wasm_playground.Models.HandlelisteItem> updatedItems)
+    {
+        _ = InvokeAsync(() => ProcessIncomingItemsAsync(updatedItems));
+    }
+
+    private async Task ProcessIncomingItemsAsync(List<blazor_wasm_playground.Models.HandlelisteItem> updatedItems)
+    {
+        var updated = updatedItems ?? new List<blazor_wasm_playground.Models.HandlelisteItem>();
+
+        var incomingIds = new HashSet<string>(updated.Where(i => !string.IsNullOrEmpty(i.Id)).Select(i => i.Id!));
+
+        if (!initialLoadCompleted)
+        {
+            items = updated;
+            knownIds = new HashSet<string>(incomingIds);
+            initialLoadCompleted = true;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var newIds = incomingIds.Except(knownIds).ToList();
+
+        if (newIds.Any())
+        {
+            foreach (var id in newIds)
+            {
+                addedIds.Add(id);
+            }
+
+            items = updated;
+
+            foreach (var id in incomingIds) knownIds.Add(id);
+
+            await InvokeAsync(StateHasChanged);
+
+            foreach (var id in newIds)
+            {
+                try
+                {
+                    await JS.InvokeVoidAsync("firebaseInterop.removeAddedClassWhenAnimationEnds", id);
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                addedIds.Remove(id);
+            }
+        }
+        else
+        {
+            items = updated;
+            knownIds = new HashSet<string>(incomingIds);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private string GetItemClasses(blazor_wasm_playground.Models.HandlelisteItem item)
+    {
+        if (item == null)
+            return string.Empty;
+
+        var id = item.Id;
+        var classes = new List<string>();
+
+        if (!string.IsNullOrEmpty(id) && removingIds.Contains(id))
+            classes.Add("removing");
+
+        if (!string.IsNullOrEmpty(id) && addedIds.Contains(id))
+            classes.Add("added");
+
+        return string.Join(' ', classes);
+    }
+
+    private async Task AddItem()
+    {
+        if (string.IsNullOrWhiteSpace(newItemName))
+        {
+            errorMessage = "Item name is required.";
+            return;
+        }
+
+        errorMessage = null;
+
+        try
+        {
+            var request = new blazor_wasm_playground.Services.HandlelisteItemCreateRequest
+            {
+                Name = newItemName,
+                Pinned = false
+            };
+
+            var created = await FirebaseService.AddTodolistItemAsync(request);
+            newItemName = string.Empty;
+
+            items ??= new List<blazor_wasm_playground.Models.HandlelisteItem>();
+            if (created?.Id != null && !items.Any(i => i.Id == created.Id))
+            {
+                items.Insert(0, created);
+                knownIds.Add(created.Id);
+            }
+
+            if (created?.Id != null)
+            {
+                addedIds.Add(created.Id);
+                StateHasChanged();
+
+                try
+                {
+                    _ = JS.InvokeVoidAsync("firebaseInterop.removeAddedClassWhenAnimationEnds", created.Id);
+                }
+                catch
+                {
+                    // ignore JS interop errors — not fatal
+                }
+
+                addedIds.Remove(created.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task TogglePinned(blazor_wasm_playground.Models.HandlelisteItem item)
+    {
+        if (item?.Id == null)
+        {
+            return;
+        }
+
+        errorMessage = null;
+
+        try
+        {
+            await FirebaseService.UpdateTodolistItemPinnedAsync(item.Id, !item.Pinned);
+            await LoadItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task DeleteItem(blazor_wasm_playground.Models.HandlelisteItem item)
+    {
+        if (item?.Id == null)
+        {
+            return;
+        }
+        errorMessage = null;
+
+        try
+        {
+            removingIds.Add(item.Id);
+            StateHasChanged();
+
+            await Task.Delay(200);
+
+            await FirebaseService.DeleteTodolistItemAsync(item.Id);
+
+            items = items?.Where(i => i.Id != item.Id).ToList();
+            removingIds.Remove(item.Id);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            removingIds.Remove(item.Id);
+            errorMessage = ex.Message;
+        }
+    }
+
+    public void Dispose()
+    {
+        FirebaseService.TodolistChanged -= OnTodolistChanged;
+    }
+}
