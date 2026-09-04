@@ -1,8 +1,19 @@
 ﻿@page "/counter"
+@using System.Runtime.CompilerServices
 
 <PageTitle>Counter</PageTitle>
 
 <h1>Counter</h1>
+
+<EditForm Model="@palindromeForm" OnValidSubmit="CheckPalindrome">
+    <InputText @bind-Value="palindromeForm.Text" />
+    <button type="submit" class="btn btn-primary">Check palindrome</button>
+</EditForm>
+
+@if (palindromeResult is not null)
+{
+    <p role="status">The text is @(palindromeResult.Value ? "a palindrome" : "not a palindrome").</p>
+}
 
 <p role="status">Current count: @currentCount</p>
 
@@ -10,9 +21,41 @@
 
 @code {
     private int currentCount = 0;
+    private readonly PalindromeForm palindromeForm = new();
+    private bool? palindromeResult;
+
+    private bool IsPalindrome(string text)
+    {
+        int left = 0;
+        int right = text.Length - 1;
+
+        while (left < right)
+        {
+            while (left < right && !char.IsLetterOrDigit(text[left])) left++;
+            while (left < right && !char.IsLetterOrDigit(text[right])) right--;
+
+            if (char.ToUpperInvariant(text[left]) != char.ToUpperInvariant(text[right]))
+                return false;
+
+            left++;
+            right--;
+        }
+
+        return true;
+    }
+
+    private void CheckPalindrome()
+    {
+        palindromeResult = IsPalindrome(palindromeForm.Text);
+    }
 
     private void IncrementCount()
     {
         currentCount++;
+    }
+
+    private sealed class PalindromeForm
+    {
+        public string Text { get; set; } = string.Empty;
     }
 }
