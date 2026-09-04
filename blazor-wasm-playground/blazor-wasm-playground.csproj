@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <StaticWebAssetFingerprintingEnabled>false</StaticWebAssetFingerprintingEnabled>
+      <StaticWebAssetsFingerprintContent>false</StaticWebAssetsFingerprintContent>
+
   </PropertyGroup>
 
   <ItemGroup>
