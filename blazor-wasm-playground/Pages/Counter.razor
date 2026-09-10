@@ -1,28 +1,161 @@
 ﻿@page "/counter"
-@using System.Runtime.CompilerServices
-
 <PageTitle>Counter</PageTitle>
 
-<h1>Counter</h1>
+<div class="counter-page">
+    <h1>Counter</h1>
 
-<EditForm Model="@palindromeForm" OnValidSubmit="CheckPalindrome">
-    <InputText @bind-Value="palindromeForm.Text" />
-    <button type="submit" class="btn btn-primary">Check palindrome</button>
-</EditForm>
+    <details class="counter-section palindrome-section" name="details" open="@IsOpen">
+        <summary>Check if a string is a palindrome</summary>
+        <div class="conversion-fields palindrome-fields">
+            <div class="conversion-field">
+                <label for="palindrome-text">Text</label>
+                <input id="palindrome-text" name="test" @bind="palindromeText" @bind:event="oninput"
+                       @bind:after="CheckPalindrome" class="detail-input conversion-input" />
+            </div>
+            <button type="button" class="btn btn-primary palindrome-button" @onclick="CheckPalindrome">
+                Check palindrome
+            </button>
+        </div>
 
-@if (palindromeResult is not null)
-{
-    <p role="status">The text is @(palindromeResult.Value ? "a palindrome" : "not a palindrome").</p>
-}
+        @if (palindromeResult is not null)
+        {
+            <p role="status">The text is @(palindromeResult.Value ? "a palindrome" : "not a palindrome").</p>
+        }
+    </details>
 
-<p role="status">Current count: @currentCount</p>
+    <details class="counter-section conversion-section" name="details" open="@IsOpen">
+        <summary>Temperature conversion</summary>
+        <div class="conversion-fields">
+            <div class="conversion-field">
+                <label for="fahrenheit">Fahrenheit</label>
+                <input id="fahrenheit" name="fahrenheit" type="number" step="0.01" @bind="Fahrenheit"
+                       @bind:event="oninput" class="detail-input conversion-input" />
+            </div>
+            <div class="conversion-field">
+                <label for="celsius">Celsius</label>
+                <input id="celsius" name="celsius" type="number" step="0.01" @bind="Celsius" @bind:event="oninput"
+                       class="detail-input conversion-input" />
+            </div>
+        </div>
+    </details>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+    <details class="counter-section conversion-section" name="details" open="@IsOpen">
+        <summary>Pounds - kilograms conversion</summary>
+        <div class="conversion-fields">
+            <div class="conversion-field">
+                <label for="pounds">Pounds</label>
+                <input id="pounds" name="pounds" type="number" step="0.01" @bind="Pounds" @bind:event="oninput"
+                       class="detail-input conversion-input" />
+            </div>
+            <div class="conversion-field">
+                <label for="kilograms">Kilograms</label>
+                <input id="kilograms" name="kilograms" type="number" step="0.01" @bind="Kilograms" @bind:event="oninput"
+                       class="detail-input conversion-input" />
+            </div>
+        </div>
+    </details>
+
+    <details class="counter-section conversion-section" name="details" open="@IsOpen">
+        <summary>Miles - Kilograms conversion</summary>
+        <div class="conversion-fields">
+            <div class="conversion-field">
+                <label for="miles">Miles</label>
+                <input id="miles" name="miles" type="number" step="0.01" @bind="Miles" @bind:event="oninput"
+                       class="detail-input conversion-input" />
+            </div>
+            <div class="conversion-field">
+                <label for="kilograms">Kilometres</label>
+                <input id="kilometres" name="kilometres" type="number" step="0.01" @bind="Kilometres"
+                       @bind:event="oninput" class="detail-input conversion-input" />
+            </div>
+        </div>
+    </details>
+
+    <p role="status">Current count: @currentCount</p>
+
+    <button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+</div>
 
 @code {
+    [Parameter]
+    public bool IsOpen { get; set; } = true;
     private int currentCount = 0;
     private readonly PalindromeForm palindromeForm = new();
+    private string palindromeText = "Agnes i senga";
     private bool? palindromeResult;
+    private decimal fahrenheit = 125m;
+    private decimal celsius;
+    private decimal pounds = 1m;
+    private decimal kilograms;
+    private decimal miles;
+    private decimal kilometres;
+
+    protected override void OnInitialized()
+    {
+        celsius = Math.Round((fahrenheit - 32m) * 5m / 9m, decimals: 2);
+        kilograms = Math.Round(pounds * 0.45359237m, decimals: 2);
+    }
+
+    private decimal Fahrenheit
+    {
+        get => fahrenheit;
+        set
+        {
+            fahrenheit = Math.Round(value, decimals: 2);
+            celsius = Math.Round((fahrenheit - 32m) * 5m / 9m, decimals: 2);
+        }
+    }
+
+    private decimal Celsius
+    {
+        get => celsius;
+        set
+        {
+            celsius = Math.Round(value, decimals: 2);
+            fahrenheit = Math.Round(celsius * 9m / 5m + 32m, decimals: 2);
+        }
+    }
+
+    private decimal Pounds
+    {
+        get => pounds;
+        set
+        {
+            pounds = Math.Round(value, decimals: 2);
+            kilograms = Math.Round(pounds * 0.45359237m, decimals: 2);
+        }
+    }
+
+    private decimal Kilograms
+    {
+        get => kilograms;
+        set
+        {
+            kilograms = Math.Round(value, decimals: 2);
+            pounds = Math.Round(kilograms / 0.45359237m, decimals: 2);
+        }
+    }
+
+    private decimal Miles
+    {
+        get => miles;
+        set
+        {
+            miles = Math.Round(value, decimals: 5);
+            kilometres = Math.Round(miles * 1.069344m, decimals: 5);
+        }
+    }
+
+    private decimal Kilometres
+    {
+        get => kilometres;
+        set
+        {
+            Kilometres = Math.Round(value, decimals: 5);
+            miles = Math.Round(Kilometres * 0.621371m, decimals: 5);
+        }
+    }
 
     private bool IsPalindrome(string text)
     {
@@ -56,6 +189,6 @@
 
     private sealed class PalindromeForm
     {
-        public string Text { get; set; } = string.Empty;
+        public string Text { get; set; } = "Agnes i senga";
     }
 }

@@ -148,6 +148,7 @@ main{
 .form-label{ display:block; margin-bottom:0.5rem; font-size:0.95rem; }
 .form-control{ display:block; width:100%; padding:0.5rem 0.65rem; border:1px solid var(--border); border-radius:0.5rem; background:#fff; color:var(--text); box-sizing:border-box; }
 .form-control:focus{ box-shadow:0 0 0 4px rgba(11,102,208,0.06); border-color:rgba(11,102,208,0.5); outline:none; }
+.palindrome-input{ padding:var(--space-2); }
 
 /* Cards and lists */
 .card{ background:#fff; border-radius:0.85rem; border:1px solid var(--border); box-shadow:var(--shadow-1); }
