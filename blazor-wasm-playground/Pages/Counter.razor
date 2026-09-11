@@ -1,8 +1,8 @@
-﻿@page "/counter"
-<PageTitle>Counter</PageTitle>
+﻿@page "/Tools"
+<PageTitle>Tools</PageTitle>
 
 <div class="counter-page">
-    <h1>Counter</h1>
+    <h1>Tools</h1>
 
     <details class="counter-section palindrome-section" name="details" open="@IsOpen">
         <summary>Check if a string is a palindrome</summary>
@@ -23,8 +23,8 @@
         }
     </details>
 
-    <details class="counter-section conversion-section" name="details" open="@IsOpen">
-        <summary>Temperature conversion</summary>
+    <details class="counter-section conversion-section" name="conversion" open="@IsOpen">
+        <summary>Fahrenheit - Celsius conversion</summary>
         <div class="conversion-fields">
             <div class="conversion-field">
                 <label for="fahrenheit">Fahrenheit</label>
@@ -39,7 +39,7 @@
         </div>
     </details>
 
-    <details class="counter-section conversion-section" name="details" open="@IsOpen">
+    <details class="counter-section conversion-section" name="conversion" open="@IsOpen">
         <summary>Pounds - kilograms conversion</summary>
         <div class="conversion-fields">
             <div class="conversion-field">
@@ -55,7 +55,7 @@
         </div>
     </details>
 
-    <details class="counter-section conversion-section" name="details" open="@IsOpen">
+    <details class="counter-section conversion-section" name="conversion" open="@IsOpen">
         <summary>Miles - Kilograms conversion</summary>
         <div class="conversion-fields">
             <div class="conversion-field">
@@ -88,13 +88,14 @@
     private decimal celsius;
     private decimal pounds = 1m;
     private decimal kilograms;
-    private decimal miles;
+    private decimal miles = 1m;
     private decimal kilometres;
 
     protected override void OnInitialized()
     {
-        celsius = Math.Round((fahrenheit - 32m) * 5m / 9m, decimals: 2);
-        kilograms = Math.Round(pounds * 0.45359237m, decimals: 2);
+        Fahrenheit = fahrenheit;
+        Pounds = pounds;
+        Miles = miles;
     }
 
     private decimal Fahrenheit
@@ -152,8 +153,8 @@
         get => kilometres;
         set
         {
-            Kilometres = Math.Round(value, decimals: 5);
-            miles = Math.Round(Kilometres * 0.621371m, decimals: 5);
+            kilometres = Math.Round(value, decimals: 2);
+            miles = Math.Round(kilometres * 0.621371m, decimals: 2);
         }
     }
 
